@@ -1,12 +1,13 @@
 package bloomfilter
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestBloomfilter(t *testing.T) {
 	cfg := Config{
-		N:        100000000,      // capacity
+		N:        1000000,        // capacity
 		P:        0.00001,        // false probability
 		HashName: HASHER_OPTIMAL, // hash functions
 	}
@@ -20,5 +21,18 @@ func TestBloomfilter(t *testing.T) {
 	}
 	if ok := bf.Check([]byte("facebook.com")); ok {
 		t.Errorf("[facebook.com] should be not exists")
+	}
+}
+
+func BenchmarkBloomfilter(b *testing.B) {
+	cfg := Config{
+		N:        1000000,        // capacity
+		P:        0.00001,        // false probability
+		HashName: HASHER_OPTIMAL, // hash functions
+	}
+	bf := New(cfg)
+
+	for i := 0; i < b.N; i++ {
+		bf.Add([]byte(fmt.Sprintf("word:%d", i)))
 	}
 }

@@ -15,7 +15,7 @@ import (
 
 func main() {
 	cfg := bloomfilter.Config{
-		N:        100000000,                  // capacity
+		N:        1000000,                    // capacity
 		P:        0.00001,                    // false probability
 		HashName: bloomfilter.HASHER_OPTIMAL, // hash functions
 	}
