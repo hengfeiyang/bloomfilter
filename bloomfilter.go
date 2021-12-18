@@ -1,52 +1,76 @@
-// Package bloomfilter contains common data and interfaces needed to implement bloomfilters.
-//
-// It is based on the theory explained in: http://llimllib.github.io/bloomfilter-tutorial/
-// In the repo, there are created the following types of bloomfilter: derived from bitset, sliding bloomfilters
-// and rpc bloomfilter implementation.
+// Package bloomfilter contains a bloomfilter implement with roaring bitmap.
 package bloomfilter
 
-import "math"
+import (
+	"math"
 
-// Bloomfilter interface implemented in the different packages
-type Bloomfilter interface {
-	Add([]byte)
-	Check([]byte) bool
-	Union(interface{}) (float64, error)
-}
+	"github.com/RoaringBitmap/roaring/roaring64"
+)
 
 // Config for bloomfilter defining the parameters:
-// P - desired false positive probability, N - number of elements to be stored in the filter and
+// N - number of elements to be stored in the filter
+// P - desired false positive probability
 // HashName - the name of the particular hashfunction
 type Config struct {
-	N        uint
-	P        float64
-	HashName string
-}
-
-// EmptyConfig configuration used for first empty `previous` bloomfilter in the sliding three bloomfilters
-var EmptyConfig = Config{
-	N: 2,
-	P: .5,
+	N        uint64  // capacity
+	P        float64 // false probability
+	HashName string  // hash functions
 }
 
 // M function computes the length of the bit array of the bloomfilter as function of n and p
-func M(n uint, p float64) uint {
-	return uint(math.Ceil(-(float64(n) * math.Log(p)) / math.Log(math.Pow(2.0, math.Log(2.0)))))
+func M(n uint64, p float64) uint64 {
+	return uint64(math.Ceil(-(float64(n) * math.Log(p)) / math.Log(math.Pow(2.0, math.Log(2.0)))))
 }
 
 // K function computes the number of hashfunctions of the bloomfilter as function of n and p
-func K(m, n uint) uint {
-	return uint(math.Ceil(math.Log(2.0) * float64(m) / float64(n)))
+func K(m, n uint64) uint64 {
+	return uint64(math.Ceil(math.Log(2.0) * float64(m) / float64(n)))
 }
 
-// EmptySet type is a synonym of int
-type EmptySet int
+// bloomfilter basic type
+type bloomfilter struct {
+	bs  *roaring64.Bitmap
+	m   uint64
+	k   uint64
+	h   []Hash
+	cfg Config
+}
 
-// Check implementation for EmptySet
-func (e EmptySet) Check(_ []byte) bool { return false }
+// New creates a new bloomfilter from a given config
+func New(cfg Config) *bloomfilter {
+	m := M(cfg.N, cfg.P)
+	k := K(m, cfg.N)
+	return &bloomfilter{
+		m:   m,
+		k:   k,
+		h:   HashFactoryNames[cfg.HashName](k),
+		bs:  roaring64.NewBitmap(),
+		cfg: cfg,
+	}
+}
 
-// Add implementation for EmptySet
-func (e EmptySet) Add(_ []byte) {}
+// Add an element to bloomfilter
+func (b bloomfilter) Add(elem []byte) {
+	for _, h := range b.h {
+		for _, x := range h(elem) {
+			b.bs.Add(x % b.m)
+		}
+	}
+}
 
-// Union implementation for EmptySet
-func (e EmptySet) Union(interface{}) (float64, error) { return -1, nil }
+// Check if an element is in the bloomfilter
+func (b bloomfilter) Check(elem []byte) bool {
+	for _, h := range b.h {
+		for _, x := range h(elem) {
+			if !b.bs.Contains(uint64(x % b.m)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// GetSizeInBytes estimates the memory usage of the Bitmap
+func (b *bloomfilter) GetSizeInBytes() uint64 {
+	return b.bs.GetSizeInBytes()
+}

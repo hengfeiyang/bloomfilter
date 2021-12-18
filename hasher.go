@@ -10,8 +10,8 @@ import (
 	"hash/fnv"
 )
 
-type Hash func([]byte) []uint
-type HashFactory func(uint) []Hash
+type Hash func([]byte) []uint64
+type HashFactory func(uint64) []Hash
 
 const (
 	HASHER_DEFAULT = "default"
@@ -41,21 +41,21 @@ var (
 	FNV128 = HashWrapper(fnv.New128())
 )
 
-func DefaultHashFactory(k uint) []Hash {
-	if k > uint(len(defaultHashers)) {
-		k = uint(len(defaultHashers))
+func DefaultHashFactory(k uint64) []Hash {
+	if k > uint64(len(defaultHashers)) {
+		k = uint64(len(defaultHashers))
 	}
 	return defaultHashers[:k]
 }
 
-func OptimalHashFactory(k uint) []Hash {
+func OptimalHashFactory(k uint64) []Hash {
 	return []Hash{
-		func(b []byte) []uint {
+		func(b []byte) []uint64 {
 			hs := FNV128(b)
-			out := make([]uint, k)
+			out := make([]uint64, k)
 
 			for i := range out {
-				out[i] = hs[0] + uint(i)*hs[1]
+				out[i] = hs[0] + uint64(i)*hs[1]
 			}
 			return out
 		},
@@ -63,13 +63,13 @@ func OptimalHashFactory(k uint) []Hash {
 }
 
 func HashWrapper(h hash.Hash) Hash {
-	return func(elem []byte) []uint {
+	return func(elem []byte) []uint64 {
 		h.Reset()
 		h.Write(elem)
 		result := h.Sum(nil)
-		out := make([]uint, len(result)/8)
+		out := make([]uint64, len(result)/8)
 		for i := 0; i < len(result)/8; i++ {
-			out[i] = uint(binary.LittleEndian.Uint64(result[i*8 : (i+1)*8]))
+			out[i] = binary.LittleEndian.Uint64(result[i*8 : (i+1)*8])
 		}
 		return out
 	}
