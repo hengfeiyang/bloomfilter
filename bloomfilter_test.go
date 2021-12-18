@@ -6,7 +6,7 @@ import (
 
 func TestBloomfilter(t *testing.T) {
 	cfg := Config{
-		N:        1000000,        // capacity
+		N:        100000000,      // capacity
 		P:        0.00001,        // false probability
 		HashName: HASHER_OPTIMAL, // hash functions
 	}
