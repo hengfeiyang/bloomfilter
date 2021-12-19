@@ -28,3 +28,8 @@ func (r *roaring) Check(x uint64) bool {
 func (r *roaring) Count() uint64 {
 	return r.b.GetCardinality()
 }
+
+// Optimize compress the runs of consecutive values found in the bitmap
+func (r *roaring) Optimize() {
+	r.b.RunOptimize()
+}

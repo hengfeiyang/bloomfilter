@@ -29,3 +29,7 @@ func (bs *bitSet) Check(x uint64) bool {
 func (bs *bitSet) Count() uint64 {
 	return uint64(bs.b.Count())
 }
+
+// Optimize compress the runs of consecutive values found in the bitset
+func (r *bitSet) Optimize() {
+}
