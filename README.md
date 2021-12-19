@@ -19,7 +19,7 @@ func main() {
 		P:        0.00001,                    // false probability
 		HashName: bloomfilter.HASHER_OPTIMAL, // hash functions
 	}
-	bf := bloomfilter.New(cfg)
+	bf := bloomfilter.New(cfg, bloomfilter.NewRoaring(cfg))
 	bf.Add([]byte("www.google.com"))
 	bf.Add([]byte("twitter.com"))
 	bf.Add([]byte("github.com"))
